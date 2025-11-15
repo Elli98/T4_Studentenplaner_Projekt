@@ -60,14 +60,14 @@
             id="new-desc"
             v-model="newTermin.description"
             placeholder="Details zum Termin..."
-            rows="3"
-          ></textarea>
+            rows="3"></textarea>
         </div>
       </div>
 
-       <button @click="addTermin" :disabled="isSaving">
-        {{ isSaving ? 'Speichert...' : 'Termin speichern' }}
-      </button>
+       <button @click="editingTerminId ? saveTermin(editingTerminId) : addTermin()" :disabled="isSaving">
+        {{ isSaving ? 'Speichert...' : (editingTerminId ? 'Termin aktualisieren' : 'Termin speichern') }}
+       </button>
+
     </div>
 
     <hr />
@@ -88,25 +88,43 @@
         :key="termin.id" 
         class="termin-row">
 
-        <div class="termin-info">
-          <div class="termin-left">
-            <h3>{{ termin.title }}</h3>
-            <p v-if="termin.description">{{ termin.description }}</p>
+        <!--  Bearbeitung eines Termins -->
+        <template v-if="editingTerminId === termin.id">
+          <div class="edit-section">
+            <input type="text" v-model="editTermin.title" placeholder="Titel" />
+            <input type="date" v-model="editTermin.date" />
+            <input type="time" v-model="editTermin.time" />
+            <select v-model="editTermin.category">
+              <option>Vorlesung</option>
+              <option>Abgabe</option>
+              <option>Prüfung</option>
+              <option>Freizeit</option>
+            </select>
+            <textarea v-model="editTermin.description" placeholder="Beschreibung..." rows="2"></textarea>
           </div>
-          <div class="termin-right">
-            <p>{{ formatTerminDate(termin.date, termin.time) }}</p>
-            <p>{{ termin.category }}</p>
-            <small>
-              erstellt am {{ new Date(termin.createdAt).toLocaleDateString('de-DE') }}
-            </small>
+          <div class="row-actions">
+            <button @click="saveTermin(termin.id)" class="save-btn">Speichern</button>
+            <button @click="cancelEdit" class="cancel-btn">Abbrechen</button>
           </div>
-        </div>
-      
-    <!--Buttons zum Bearbeiten & Löschen-->
-    <div class="termin-actions">
-          <button @click="editTermin(termin)">Bearbeiten</button>
-          <button @click="deleteTermin(termin.id)">Löschen</button>
-        </div>
+        </template>
+        
+        <template v-else>
+          <div class="termin-info">
+            <div class="termin-left">
+              <h3>{{ termin.title }}</h3>
+              <p v-if="termin.description">{{ termin.description }}</p>
+            </div>
+            <div class="termin-right">
+              <p>{{ formatTerminDate(termin.date, termin.time) }}</p>
+              <p>{{ termin.category }}</p>
+              <small>erstellt am {{ new Date(termin.createdAt).toLocaleDateString('de-DE') }}</small>
+              <div class="row-actions">
+                <button @click="toggleEdit(termin)" class="edit-btn">Bearbeiten</button>
+                <button @click="deleteTermin(termin.id)" class="delete-btn">Löschen</button>
+              </div>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
 
@@ -119,10 +137,6 @@ import { reactive, ref, onMounted, computed } from 'vue'
 
 
 const authStore = useAuthStore()
-
-function handleLogout() {
-  authStore.logout()
-}
 
 type TerminCategory = "Vorlesung" | "Abgabe" | "Prüfung" | "Freizeit"
 interface Termin {
@@ -145,9 +159,18 @@ const createTerminTemplate = () => ({
   time: '10:00',
   category: 'Vorlesung' as TerminCategory
 })
-
 const newTermin = reactive(createTerminTemplate())
-//Speichern
+
+//Bearbeiten
+const editingTerminId = ref<string | null>(null)
+const editTermin = reactive({
+  title: '',
+  description: '',
+  date: '',
+  time: '',
+  category: 'Vorlesung' as TerminCategory
+})
+
 
 async function addTermin() {
   if (!newTermin.title || !newTermin.date || !newTermin.time) {
@@ -220,15 +243,44 @@ async function deleteTermin(id: string) {
     console.error(error)
   }
 }
-// Termin bearbeiten 
-function editTermin(termin: Termin) {
-  Object.assign(newTermin, {
-    title: termin.title,
-    description: termin.description || '',
-    date: termin.date,
-    time: termin.time,
-    category: termin.category
-  })
+
+function toggleEdit(termin: Termin) {
+  editingTerminId.value = termin.id
+  editTermin.title = termin.title
+  editTermin.description = termin.description || ''
+  editTermin.date = termin.date
+  editTermin.time = termin.time
+  editTermin.category = termin.category
+}
+function cancelEdit() {
+  editingTerminId.value = null
+}
+
+async function saveTermin(id: string) {
+  if (!editTermin.title || !editTermin.date || !editTermin.time) {
+    alert('Titel, Datum und Uhrzeit dürfen nicht leer sein.')
+    return
+  }
+  try {
+    const res = await authStore.fetchWithAuth(`/termine/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editTermin)
+    })
+    if (!res.ok) throw new Error('Fehler beim Aktualisieren')
+    cancelEdit()
+    await loadTermine()
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+function handleLogout() {
+  authStore.logout()
+}
+
+function getTerminClass(termin: Termin): string {
+  return `category-${termin.category.toLowerCase()}`
 }
 
 //nächsten wichtigen Termin berechnen
