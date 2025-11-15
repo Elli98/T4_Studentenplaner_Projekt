@@ -97,6 +97,12 @@
             </small>
           </div>
         </div>
+      
+    <!--Buttons zum Bearbeiten & Löschen-->
+    <div class="termin-actions">
+          <button @click="editTermin(termin)">Bearbeiten</button>
+          <button @click="deleteTermin(termin.id)">Löschen</button>
+        </div>
       </div>
     </div>
 
@@ -154,7 +160,7 @@ async function addTermin() {
     })
     if (!res.ok) throw new Error('Fehler beim Speichern')
     Object.assign(newTermin, createTerminTemplate())
-   
+    await loadTermine()
   } catch (error) {
     console.error(error)
   } finally {
@@ -198,4 +204,26 @@ function formatTerminDate(dateStr: string, timeStr: string): string {
 // Termine beim Laden der Seite abrufen
 onMounted(() => loadTermine())
 
+// Termin löschen
+async function deleteTermin(id: string) {
+  try {
+    const res = await authStore.fetchWithAuth(`/termine/${id}`, {
+      method: 'DELETE'
+    })
+    if (!res.ok) throw new Error('Fehler beim Löschen')
+    await loadTermine() // Liste neu laden
+  } catch (error) {
+    console.error(error)
+  }
+}
+// Termin bearbeiten 
+function editTermin(termin: Termin) {
+  Object.assign(newTermin, {
+    title: termin.title,
+    description: termin.description || '',
+    date: termin.date,
+    time: termin.time,
+    category: termin.category
+  })
+}
 </script>
