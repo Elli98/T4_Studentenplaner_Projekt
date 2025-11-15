@@ -9,6 +9,10 @@
         </button>
       </div>
     </header>
+    <div class="card countdown-card" v-if="countdownMessage">
+        <h2>Nächster wichtiger Termin</h2>
+        <p>{{ countdownMessage }}</p>
+    </div>
 
     <!--Formular für neuen Termin -->
     <div class="card">
@@ -111,7 +115,7 @@
 
 <script setup lang="ts">
 import { useAuthStore } from '@/stores/authStore'
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, onMounted, computed } from 'vue'
 
 
 const authStore = useAuthStore()
@@ -226,4 +230,35 @@ function editTermin(termin: Termin) {
     category: termin.category
   })
 }
+
+//nächsten wichtigen Termin berechnen
+const nextImportantTermin = computed(() => {
+  // nur Prüfungen oder Abgaben berücksichtigen
+  const wichtige = termine.value.filter(t =>
+    t.category === "Prüfung" || t.category === "Abgabe"
+  )
+  // nach Datum sortieren
+  wichtige.sort((a, b) =>
+    new Date(`${a.date}T${a.time}`).getTime() -
+    new Date(`${b.date}T${b.time}`).getTime()
+  )
+  return wichtige[0] || null
+})
+//Countdown-Nachricht
+const countdownMessage = computed(() => {
+  if (loading.value) return 'Lade Termine für Countdown...'
+  if (!nextImportantTermin.value) {
+    return 'Aktuell stehen keine Abgaben oder Prüfungen an.'
+  }
+  const termin = nextImportantTermin.value
+  const terminDate = new Date(`${termin.date}T${termin.time}`)
+  const diffMs = terminDate.getTime() - Date.now()
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+  const terminDatum = new Date(termin.date).toLocaleDateString('de-DE')
+
+  if (diffDays > 1) return `Nächste ${termin.category} in ${diffDays} Tagen: ${termin.title} (${terminDatum})`
+  if (diffDays === 1) return `Nächste ${termin.category} ist morgen: ${termin.title} (${terminDatum})`
+  if (diffDays === 0) return `Nächste ${termin.category} ist heute: ${termin.title} (${terminDatum})`
+  return ''
+})
 </script>
