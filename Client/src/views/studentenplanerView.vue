@@ -46,10 +46,10 @@
          <div class="form-group full-width">
           <label for="new-category">Kategorie</label>
           <select id="new-category" v-model="newTermin.category">
-            <option>Vorlesung</option>
-            <option>Abgabe</option>
-            <option>Prüfung</option>
-            <option>Freizeit</option>
+            <option style="color: #6a8df0">Vorlesung</option>
+            <option style="color: #d4af37">Abgabe</option>
+            <option style="color: #ff0000">Prüfung</option>
+            <option style="color: #57b657">Freizeit</option>
           </select>
         </div>
 
@@ -86,7 +86,7 @@
         v-else
         v-for="termin in termine" 
         :key="termin.id" 
-        class="termin-row">
+        :class="['termin-row', getTerminClass(termin)]">
 
         <!--  Bearbeitung eines Termins -->
         <template v-if="editingTerminId === termin.id">
@@ -111,8 +111,11 @@
         <template v-else>
           <div class="termin-info">
             <div class="termin-left">
-              <h3>{{ termin.title }}</h3>
+              <div class="category-mark"></div>
+              <div>
+                <h3>{{ termin.title }}</h3>
               <p v-if="termin.description">{{ termin.description }}</p>
+              </div>
             </div>
             <div class="termin-right">
               <p>{{ formatTerminDate(termin.date, termin.time) }}</p>
@@ -228,9 +231,6 @@ function formatTerminDate(dateStr: string, timeStr: string): string {
   }
 }
 
-// Termine beim Laden der Seite abrufen
-onMounted(() => loadTermine())
-
 // Termin löschen
 async function deleteTermin(id: string) {
   try {
@@ -313,4 +313,173 @@ const countdownMessage = computed(() => {
   if (diffDays === 0) return `Nächste ${termin.category} ist heute: ${termin.title} (${terminDatum})`
   return ''
 })
+
+// Termine beim Laden der Seite abrufen
+onMounted(() => loadTermine())
 </script>
+
+
+<style scoped>
+.termin-container {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.loading,
+.no-entries {
+  text-align: center;
+  font-style: italic;
+  color: #666;
+  margin-top: 1rem;
+}
+
+.termin-row {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid #e4e8f0;
+  border-radius: 8px;
+  padding: 1rem 1.2rem;
+  transition: background 0.2s ease;
+}
+.termin-row:hover {
+  background: #f7f9ff;
+}
+
+.termin-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.termin-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.category-mark {
+  width: 10px;
+  border-radius: 6px;
+  background: #ccc;
+  margin-top: 0.3rem;
+  min-height: 100px;
+  flex-shrink: 0; 
+}
+
+.termin-left h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2f4f8f;
+}
+.termin-left .termin-desc {
+  font-size: 0.9rem;
+  color: #555;
+  margin-top: 0.2rem;
+}
+
+.termin-right {
+  text-align: right;
+  min-width: 180px;
+}
+.termin-date {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+}
+.termin-cat {
+  font-size: 0.85rem;
+  color: #666;
+}
+.created-at {
+  display: block;
+  font-size: 0.75rem;
+  color: #999;
+  margin-top: 0.3rem;
+}
+
+.row-actions {
+  margin-top: 0.5rem;
+  display: flex;
+  gap: 0.3rem;
+  justify-content: flex-end;
+}
+.row-actions button {
+  padding: 0.4rem 0.6rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.edit-btn { background: #000000; color: #fff; }
+.delete-btn { background: #a11515; color: #fff; }
+.edit-btn:hover { background: #999999; }
+.delete-btn:hover { background: #e14f4f; }
+
+.edit-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+.edit-section input,
+.edit-section select,
+.edit-section textarea {
+  border: 1px solid #d0d4e4;
+  border-radius: 6px;
+  padding: 0.5rem;
+  font-size: 0.9rem;
+}
+.row-actions .save-btn { background: #57b657; color: #fff; }
+.row-actions .cancel-btn { background: #adb5bd; color: #fff; }
+
+.category-vorlesung .category-mark { background: #6a8df0; }
+.category-abgabe .category-mark { background: #fcdb70; }
+.category-prüfung .category-mark,
+.category-pruefung .category-mark { background: #ff0000; }
+.category-freizeit .category-mark { background: #57b657; }
+
+@media (max-width: 700px) {
+  .termin-info {
+    flex-direction: column;
+    text-align: left;
+  }
+  .termin-right {
+    text-align: left;
+  }
+}
+
+/* Zentrierung der Begrüßung */
+.user-info {
+  width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 0.5rem;
+  gap: 0.5rem;
+}
+.user-info span {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #243446; 
+}
+
+.user-info .logout-btn {
+  width: auto;
+  background: #6c757d;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+}
+
+.user-info .logout-btn:hover {
+  background: #5a6268;
+}
+textarea {
+  resize: none;
+}
+</style>
