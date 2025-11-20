@@ -67,9 +67,26 @@ app.use((ctx) => {
   ctx.response.body = "Endpunkt nicht gefunden.";
 });
 
-console.log(`Server läuft auf https://localhost:${port}`);
-await app.listen({ 
-  port, 
-  cert: await Deno.readTextFile("localhost.pem"),
-  key: await Deno.readTextFile("localhost-key.pem") 
- });
+
+// App Start
+console.log("Server wird gestartet...");
+const certFile = "./localhost.pem";
+const keyFile = "./localhost-key.pem";
+
+let options: any = { port: 8000 };
+
+try {
+  // Prüfen, ob Zertifikate existieren
+  const cert = await Deno.readTextFile(certFile);
+  const key = await Deno.readTextFile(keyFile);
+  options = { ...options, cert, key }; // HTTPS aktivieren
+  console.log("Zertifikate gefunden. Server läuft auf HTTPS://localhost:8000");
+} catch (e) {
+  console.log(
+    "Keine Zertifikate gefunden (oder Fehler beim Lesen). Starte im HTTP-Modus."
+  );
+  console.log("Server läuft auf HTTP://localhost:8000");
+}
+
+
+await app.listen(options);
